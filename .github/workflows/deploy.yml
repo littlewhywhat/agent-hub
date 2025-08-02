@@ -1,0 +1,26 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Zip deploy bundle
+      run: zip -r deploy.zip . -x '*.git*'
+
+    - name: Upload to S3
+      run: aws s3 cp deploy.zip s3://agent-hub-artifacts/deploy.zip
+
+    - name: Trigger CodeDeploy
+      run: |
+        aws deploy create-deployment \
+          --application-name agent-hub-app \
+          --deployment-group-name agent-hub-group \
+          --s3-location bucket=agent-hub-artifacts,bundleType=zip,key=deploy.zip
